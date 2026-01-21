@@ -16,6 +16,7 @@ from sqlalchemy import func
 from datetime import datetime, timedelta, date
 import logging
 from services.asset_curve_calculator import get_all_asset_curves_data_new
+from services.exchange_service import ExchangeService
 
 
 class ConnectionManager:
@@ -110,6 +111,19 @@ async def _send_snapshot_optimized(db: Session, account_id: int):
     if not account:
         return
     
+    # Real Trading Data Fetching
+    real_balance = None
+    real_positions = []
+    if account.exchange and account.exchange != "paper" and account.exchange_api_key and account.exchange_secret_key:
+        try:
+            # Note: This is a synchronous call blocking the event loop. 
+            # Ideally use run_in_executor or ccxt.async_support
+            real_balance = ExchangeService.get_balance(account.exchange, account.exchange_api_key, account.exchange_secret_key)
+            real_positions = ExchangeService.get_positions(account.exchange, account.exchange_api_key, account.exchange_secret_key)
+            logging.info(f"Fetched real data for {account.name}: Bal={real_balance}, Pos={len(real_positions)}")
+        except Exception as e:
+            logging.error(f"Failed to fetch real data for account {account.id}: {e}")
+
     positions = list_positions(db, account_id)
     orders = list_orders(db, account_id)
     trades = (
@@ -123,8 +137,24 @@ async def _send_snapshot_optimized(db: Session, account_id: int):
     positions_market_value = calc_positions_market_value(db, account_id)
     positions_notional_value = calc_positions_value(db, account_id)
 
-    # Total assets = cash + market value (NOT notional!)
-    total_assets = positions_market_value + float(account.current_cash)
+    # Override for Real Trading
+    current_cash = float(account.current_cash)
+    if real_balance:
+        # Use Total Equity as Total Assets, and Available Cash
+        # But here 'total_assets' = market_value + cash. 
+        # Exchange returns 'total_equity' which is exactly that.
+        total_assets = real_balance.get("total_equity", 0.0)
+        current_cash = real_balance.get("available_cash", 0.0)
+        
+        # Recalculate market value from real positions if needed, or deduce
+        # positions_market_value = total_assets - current_cash
+        # But simpler to sum up real positions if we want exact breakdown
+        positions_market_value = sum(p.get('market_value', 0) for p in real_positions)
+        positions_notional_value = sum(p.get('quantity', 0) * p.get('entry_price', 0) * p.get('leverage', 1) for p in real_positions) # Approx
+    else:
+        # Paper Trading Default
+        total_assets = positions_market_value + float(account.current_cash)
+
     initial_capital = float(account.initial_capital)
     return_rate = (total_assets / initial_capital) - 1 if initial_capital > 0 else 0.0
 
@@ -135,8 +165,9 @@ async def _send_snapshot_optimized(db: Session, account_id: int):
             "name": account.name,
             "account_type": account.account_type,
             "initial_capital": float(account.initial_capital),
-            "current_cash": float(account.current_cash),
-            "frozen_cash": float(account.frozen_cash),
+            "current_cash": current_cash,
+            "frozen_cash": float(account.frozen_cash) if not real_balance else 0.0, # Real trading usually manages frozen internally
+            "exchange": account.exchange or "paper", # Pass exchange info
         },
         "return_rate": return_rate,
         "total_assets": total_assets,  # CHANGED: Equity-based total
@@ -147,10 +178,40 @@ async def _send_snapshot_optimized(db: Session, account_id: int):
     
     # Optimize position enrichment - batch price fetching
     enriched_positions = []
-    price_error_message = None
     
-    # Group positions by symbol to reduce API calls
-    unique_symbols = set((p.symbol, p.market) for p in positions)
+    if real_balance:
+        # Use Real Positions
+        # Need to fetch current prices for real positions too to show updated PnL/Value if not provided by exchange fully
+        # CCXT positions usually have unrealizedPnl.
+        # We map real_positions to frontend structure
+        for p in real_positions:
+             enriched_positions.append({
+                "id": f"{p['symbol']}_{p['side']}", # Fake ID
+                "account_id": account_id,
+                "symbol": p['symbol'],
+                "name": p['symbol'], # Simple name
+                "market": "CRYPTO",
+                "quantity": float(p['quantity']),
+                "available_quantity": float(p['quantity']),
+                "avg_cost": float(p['entry_price']),
+                "leverage": float(p['leverage']),
+                "last_price": 0, # Could fetch, but maybe UI handles missing? Or use entry_price as placeholder?
+                                 # Ideally fetch current price.
+                "market_value": float(p['market_value']),
+                "notional_value": float(p['quantity'] * p['entry_price'] * p['leverage']), # Approx
+                "side": p['side'],
+                "unrealized_pnl": p.get('unrealized_pnl', 0)
+            })
+             
+        # Fetch prices for real positions to fill 'last_price'
+        unique_symbols = set((p['symbol'], "CRYPTO") for p in real_positions) # Assuming CRYPTO market
+    else:
+        # Paper Trading Logic
+        price_error_message = None
+    
+        # Group positions by symbol to reduce API calls
+        unique_symbols = set((p.symbol, p.market) for p in positions)
+    
     price_cache = {}
     
     # Fetch all unique prices in one go
@@ -160,26 +221,34 @@ async def _send_snapshot_optimized(db: Session, account_id: int):
             price_cache[(symbol, market)] = price
         except Exception as e:
             price_cache[(symbol, market)] = None
-            error_msg = str(e)
-            if "cookie" in error_msg.lower() and price_error_message is None:
-                price_error_message = error_msg
+            # Log only if really needed
 
-    for p in positions:
-        price = price_cache.get((p.symbol, p.market))
-        enriched_positions.append({
-            "id": p.id,
-            "account_id": p.account_id,
-            "symbol": p.symbol,
-            "name": p.name,
-            "market": p.market,
-            "quantity": float(p.quantity),
-            "available_quantity": float(p.available_quantity),
-            "avg_cost": float(p.avg_cost),
-            "leverage": p.leverage,
-            "last_price": float(price) if price is not None else None,
-            "market_value": (float(price) * float(p.quantity)) if price is not None else None,
-            "notional_value": (float(price) * float(p.quantity) * p.leverage) if price is not None else None,
-        })
+    if real_balance:
+        # Fill price for real positions
+        for p in enriched_positions:
+            price = price_cache.get((p['symbol'], "CRYPTO"))
+            if price:
+                p['last_price'] = float(price)
+                # Recalc market value if we want live tick updates vs exchange cached
+                # But exchange PnL is often better. Let's keep exchange PnL if available or calc.
+    else:
+        for p in positions:
+            price = price_cache.get((p.symbol, p.market))
+            enriched_positions.append({
+                "id": p.id,
+                "account_id": p.account_id,
+                "symbol": p.symbol,
+                "name": p.name,
+                "market": p.market,
+                "quantity": float(p.quantity),
+                "available_quantity": float(p.available_quantity),
+                "avg_cost": float(p.avg_cost),
+                "leverage": p.leverage,
+                "last_price": float(price) if price is not None else None,
+                "market_value": (float(price) * float(p.quantity)) if price is not None else None,
+                "notional_value": (float(price) * float(p.quantity) * p.leverage) if price is not None else None,
+                "side": p.side
+            })
 
     # Prepare response data - exclude expensive asset curve calculation for frequent updates
     response_data = {

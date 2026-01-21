@@ -150,6 +150,8 @@ export interface TradingAccount {
   model?: string  // AI model (e.g., "gpt-4-turbo")
   base_url?: string  // API endpoint
   api_key?: string  // API key (masked in responses)
+  exchange?: string // "paper" or "binance"
+  exchange_api_key?: string
   initial_capital: number
   current_cash: number
   frozen_cash: number
@@ -162,6 +164,9 @@ export interface TradingAccountCreate {
   model?: string
   base_url?: string
   api_key?: string
+  exchange?: string
+  exchange_api_key?: string
+  exchange_secret_key?: string
   initial_capital?: number
   account_type?: string
 }
@@ -171,6 +176,9 @@ export interface TradingAccountUpdate {
   model?: string
   base_url?: string
   api_key?: string
+  exchange?: string
+  exchange_api_key?: string
+  exchange_secret_key?: string
 }
 
 
@@ -249,7 +257,10 @@ export async function updateAccount(accountId: number, account: TradingAccountUp
       name: account.name,
       model: account.model,
       base_url: account.base_url,
-      api_key: account.api_key
+      api_key: account.api_key,
+      exchange: account.exchange,
+      exchange_api_key: account.exchange_api_key,
+      exchange_secret_key: account.exchange_secret_key
     })
   })
   return response.json()

@@ -47,6 +47,11 @@ class Account(Base):
     base_url = Column(String(500), nullable=True, default="https://api.deepseek.com")  # API endpoint
     api_key = Column(String(500), nullable=True)  # API key for authentication
     
+    # Real Trading Configuration
+    exchange = Column(String(20), nullable=False, default="paper")  # "paper" or "binance"
+    exchange_api_key = Column(String(500), nullable=True)
+    exchange_secret_key = Column(String(500), nullable=True)
+
     # Trading Account Balances (USD for CRYPTO market)
     initial_capital = Column(DECIMAL(18, 2), nullable=False, default=10000.00)
     current_cash = Column(DECIMAL(18, 2), nullable=False, default=10000.00)

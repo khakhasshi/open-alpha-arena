@@ -12,7 +12,10 @@ def create_account(
     initial_capital: float = 10000.0,
     model: str = "deepseek-chat",
     base_url: str = "https://api.deepseek.com",
-    api_key: str = None
+    api_key: str = None,
+    exchange: str = "paper",
+    exchange_api_key: str = None,
+    exchange_secret_key: str = None
 ) -> Account:
     """Create a new trading account"""
     account = Account(
@@ -23,6 +26,9 @@ def create_account(
         model=model if account_type == "AI" else None,
         base_url=base_url if account_type == "AI" else None,
         api_key=api_key if account_type == "AI" else None,
+        exchange=exchange,
+        exchange_api_key=exchange_api_key,
+        exchange_secret_key=exchange_secret_key,
         initial_capital=initial_capital,
         current_cash=initial_capital,
         frozen_cash=0.0,
@@ -85,7 +91,10 @@ def update_account(
     name: str = None,
     model: str = None,
     base_url: str = None,
-    api_key: str = None
+    api_key: str = None,
+    exchange: str = None,
+    exchange_api_key: str = None,
+    exchange_secret_key: str = None
 ) -> Optional[Account]:
     """Update account information"""
     account = db.query(Account).filter(Account.id == account_id).first()
@@ -100,6 +109,12 @@ def update_account(
         account.base_url = base_url
     if api_key is not None:
         account.api_key = api_key
+    if exchange is not None:
+        account.exchange = exchange
+    if exchange_api_key is not None:
+        account.exchange_api_key = exchange_api_key
+    if exchange_secret_key is not None:
+        account.exchange_secret_key = exchange_secret_key
     
     db.commit()
     db.refresh(account)

@@ -19,6 +19,8 @@ from schemas.account import (
     AccountCreate, AccountUpdate, AccountOut, AccountOverview
 )
 
+from services.exchange_service import ExchangeService
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -54,7 +56,9 @@ async def list_user_accounts(session_token: str, db: Session = Depends(get_db)):
                 name=account.name,
                 model=account.model,
                 base_url=account.base_url,
-                api_key="****" + account.api_key[-4:] if account.api_key else "",  # Mask API key
+                api_key="****" + account.api_key[-4:] if account.api_key and len(account.api_key) > 4 else "",  # Mask API key
+                exchange=account.exchange or "paper",
+                exchange_api_key="****" + account.exchange_api_key[-4:] if account.exchange_api_key and len(account.exchange_api_key) > 4 else "",  # Mask API key
                 initial_capital=float(account.initial_capital),
                 current_cash=float(account.current_cash),
                 frozen_cash=float(account.frozen_cash),
@@ -87,6 +91,11 @@ async def create_trading_account(
             if acc.name == account_data.name:
                 raise HTTPException(status_code=400, detail="Account name already exists")
         
+        # Validate exchange keys if provided
+        if account_data.exchange != "paper" and account_data.exchange_api_key and account_data.exchange_secret_key:
+            if not ExchangeService.validate_keys(account_data.exchange, account_data.exchange_api_key, account_data.exchange_secret_key):
+                raise HTTPException(status_code=400, detail=f"Failed to validate {account_data.exchange} API keys")
+
         account = create_account(
             db=db,
             user_id=user_id,
@@ -95,7 +104,10 @@ async def create_trading_account(
             initial_capital=account_data.initial_capital,
             model=account_data.model,
             base_url=account_data.base_url,
-            api_key=account_data.api_key
+            api_key=account_data.api_key,
+            exchange=account_data.exchange,
+            exchange_api_key=account_data.exchange_api_key,
+            exchange_secret_key=account_data.exchange_secret_key
         )
         
         return AccountOut(
@@ -104,7 +116,9 @@ async def create_trading_account(
             name=account.name,
             model=account.model,
             base_url=account.base_url,
-            api_key="****" + account.api_key[-4:] if account.api_key else "",
+            api_key="****" + account.api_key[-4:] if account.api_key and len(account.api_key) > 4 else "",
+            exchange=account.exchange or "paper",
+            exchange_api_key="****" + account.exchange_api_key[-4:] if account.exchange_api_key and len(account.exchange_api_key) > 4 else "",
             initial_capital=float(account.initial_capital),
             current_cash=float(account.current_cash),
             frozen_cash=float(account.frozen_cash),
@@ -142,7 +156,9 @@ async def get_account_details(
             name=account.name,
             model=account.model,
             base_url=account.base_url,
-            api_key="****" + account.api_key[-4:] if account.api_key else "",
+            api_key="****" + account.api_key[-4:] if account.api_key and len(account.api_key) > 4 else "",
+            exchange=account.exchange or "paper",
+            exchange_api_key="****" + account.exchange_api_key[-4:] if account.exchange_api_key and len(account.exchange_api_key) > 4 else "",
             initial_capital=float(account.initial_capital),
             current_cash=float(account.current_cash),
             frozen_cash=float(account.frozen_cash),
@@ -188,7 +204,10 @@ async def update_trading_account(
             name=account_data.name,
             model=account_data.model,
             base_url=account_data.base_url,
-            api_key=account_data.api_key
+            api_key=account_data.api_key,
+            exchange=account_data.exchange,
+            exchange_api_key=account_data.exchange_api_key,
+            exchange_secret_key=account_data.exchange_secret_key
         )
         
         return AccountOut(
@@ -197,7 +216,9 @@ async def update_trading_account(
             name=updated_account.name,
             model=updated_account.model,
             base_url=updated_account.base_url,
-            api_key="****" + updated_account.api_key[-4:] if updated_account.api_key else "",
+            api_key="****" + updated_account.api_key[-4:] if updated_account.api_key and len(updated_account.api_key) > 4 else "",
+            exchange=updated_account.exchange or "paper",
+            exchange_api_key="****" + updated_account.exchange_api_key[-4:] if updated_account.exchange_api_key and len(updated_account.exchange_api_key) > 4 else "",
             initial_capital=float(updated_account.initial_capital),
             current_cash=float(updated_account.current_cash),
             frozen_cash=float(updated_account.frozen_cash),

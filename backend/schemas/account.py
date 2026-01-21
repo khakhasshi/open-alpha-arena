@@ -10,6 +10,9 @@ class AccountCreate(BaseModel):
     api_key: str
     initial_capital: float = 10000.0
     account_type: str = "AI"  # "AI" or "MANUAL"
+    exchange: str = "paper"  # "paper" or "binance"
+    exchange_api_key: Optional[str] = None
+    exchange_secret_key: Optional[str] = None
 
 
 class AccountUpdate(BaseModel):
@@ -18,6 +21,9 @@ class AccountUpdate(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    exchange: Optional[str] = None
+    exchange_api_key: Optional[str] = None
+    exchange_secret_key: Optional[str] = None
 
 
 class AccountOut(BaseModel):
@@ -28,6 +34,8 @@ class AccountOut(BaseModel):
     model: str
     base_url: str
     api_key: str  # Will be masked in API responses
+    exchange: str
+    exchange_api_key: Optional[str]  # Will be masked
     initial_capital: float
     current_cash: float
     frozen_cash: float
