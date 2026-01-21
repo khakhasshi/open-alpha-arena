@@ -10,8 +10,8 @@ def create_account(
     name: str,
     account_type: str = "AI",
     initial_capital: float = 10000.0,
-    model: str = "gpt-4-turbo",
-    base_url: str = "https://api.openai.com/v1",
+    model: str = "deepseek-chat",
+    base_url: str = "https://api.deepseek.com",
     api_key: str = None
 ) -> Account:
     """Create a new trading account"""
@@ -52,14 +52,18 @@ def get_or_create_default_account(
     user_id: int,
     account_name: str = "Default AI Trader",
     initial_capital: float = 10000.0,
-    model: str = "gpt-4-turbo",
-    base_url: str = "https://api.openai.com/v1",
-    api_key: str = "default-key-please-update-in-settings"
+    model: str = "deepseek-chat",
+    base_url: str = "https://api.deepseek.com",
+    api_key: str = "sk-9a066116db774e3ba7c874822c2ad99c"
 ) -> Account:
     """Get existing account or create default AI account for user"""
     # Check if user has any accounts
     existing_accounts = get_accounts_by_user(db, user_id, active_only=True)
     if existing_accounts:
+        # Update specific Deepseek settings for existing accounts if they look like they were default
+        # Note: In a real production scenario, we might not want to auto-update existing accounts
+        # without user consent, but for this dev setup request, it's safer to ensure it works.
+        # However, this function just retuns the account. We will handle updates separately if needed.
         return existing_accounts[0]  # Return first active account
     
     # Create default AI account

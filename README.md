@@ -28,14 +28,23 @@ TODO:
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ and pnpm
-- Python 3.10+ and uv
+- Node.js 18+
+- pnpm (Global install: `npm install -g pnpm`)
+- Python 3.10+
+- uv (Global install: `pip install uv`)
 
 ### Install
 ```bash
 # install JS deps and sync Python env
 pnpm run install:all
 ```
+
+### Configuration (Deepseek & AI Models)
+The project is pre-configured to use **Deepseek** as the default LLM provider.
+
+1. **New Accounts**: By default, new accounts created in the UI will use the Deepseek configuration (`https://api.deepseek.com`).
+2. **Existing Accounts**: Update your model settings via the UI: `Settings` -> `Model Configuration`.
+3. **API Key**: Ensure you have a valid API Key. You can set a default key in the source code (`backend/services/ai_decision_service.py` top constant `DEMO_API_KEYS`) or input it when creating an account.
 
 ### Development
 By default, the workspace scripts launch:
@@ -46,21 +55,16 @@ Start both dev servers:
 ```bash
 pnpm run dev
 ```
+
+> **Note on Startup**: You might see connection errors (ECONNREFUSED) in the terminal immediately after starting. This is normal as the frontend starts faster than the backend. Wait for the "WebSocket connected" message in the browser console.
+
 Open:
 - Frontend: http://localhost:5621
-- Backend WS: ws://localhost:5611/ws
+- Backend API Docs: http://localhost:5611/docs
 
-Important: The frontend source is currently configured for port  5621. To use the workspace defaults (5611), update the following in frontend/app/main.tsx:
-- WebSocket URL: ws://localhost:5611/ws
-- API_BASE: http://127.0.0.1:5611
-
-Alternatively, run the backend on  5621:
-```bash
-# from repo root
-cd backend
-uv sync
-uv run uvicorn main:app --reload --port  5621 --host 0.0.0.0
-```
+### Troubleshooting
+- **Frontend 500 / Connection Failed**: The backend is not fully ready. Wait a few seconds and refresh the page.
+- **WebSocket Error**: If the connection drops, the frontend will attempt to reconnect automatically.
 
 ### Build
 ```bash

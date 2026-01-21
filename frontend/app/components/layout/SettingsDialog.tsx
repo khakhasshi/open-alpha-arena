@@ -48,15 +48,15 @@ export default function SettingsDialog({ open, onOpenChange, onAccountUpdated }:
   const [testing, setTesting] = useState(false)
   const [newAccount, setNewAccount] = useState<AIAccountCreate>({
     name: '',
-    model: '',
-    base_url: '',
-    api_key: 'default-key-please-update-in-settings',
+    model: 'deepseek-chat',
+    base_url: 'https://api.deepseek.com',
+    api_key: 'sk-9a066116db774e3ba7c874822c2ad99c',
   })
   const [editAccount, setEditAccount] = useState<AIAccountCreate>({
     name: '',
-    model: '',
-    base_url: '',
-    api_key: 'default-key-please-update-in-settings',
+    model: 'deepseek-chat',
+    base_url: 'https://api.deepseek.com',
+    api_key: 'sk-9a066116db774e3ba7c874822c2ad99c',
   })
 
   const loadAccounts = async () => {

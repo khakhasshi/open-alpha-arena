@@ -64,7 +64,7 @@ class TaskScheduler:
             return
         
         self.scheduler.add_job(
-            func=self._execute_account_snapshot,
+            func=self._execute_account_snapshot_sync,
             trigger=IntervalTrigger(seconds=interval_seconds),
             args=[account_id],
             id=job_id,
@@ -178,6 +178,14 @@ class TaskScheduler:
                 'func_name': job.func.__name__ if hasattr(job.func, '__name__') else str(job.func)
             })
         return jobs
+
+    def _execute_account_snapshot_sync(self, account_id: int):
+        """
+        Synchronous wrapper for _execute_account_snapshot to start it in an event loop
+        so APScheduler can run it properly.
+        """
+        import asyncio
+        asyncio.run(self._execute_account_snapshot(account_id))
 
     async def _execute_account_snapshot(self, account_id: int):
         """
