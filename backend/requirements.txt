@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlalchemy
+websockets
+requests
+apscheduler
+pandas>=2.3.3
+ccxt>=4.0.0

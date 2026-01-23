@@ -407,15 +407,15 @@ function AIDecisionLog({ aiDecisions }: { aiDecisions: AIDecision[] }) {
                   {decision.executed === 'true' ? 'Yes' : 'No'}
                 </span>
               </TableCell>
-              <TableCell className="max-w-xs">
+              <TableCell className="max-w-md">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="truncate max-w-[200px]">
+                      <div className="line-clamp-3 min-w-[300px] text-sm cursor-help hover:text-primary transition-colors">
                         {decision.reason || 'No reason provided'}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-md p-4 whitespace-pre-wrap">
+                    <TooltipContent className="max-w-lg p-4 text-sm leading-relaxed whitespace-pre-wrap shadow-lg">
                       {decision.reason || 'No reason provided'}
                     </TooltipContent>
                   </Tooltip>

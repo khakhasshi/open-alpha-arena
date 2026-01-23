@@ -92,21 +92,54 @@ def on_startup():
         # Ensure default user has at least one account
         default_accounts = db.query(Account).filter(Account.user_id == default_user.id).all()
         if len(default_accounts) == 0:
-            # Create default account
-            default_account = Account(
+            # Create GPT account
+            gpt_account = Account(
                 user_id=default_user.id,
                 version="v1",
                 name="GPT",
                 account_type="AI",
-                model="gpt-5-mini",
+                model="gpt-3.5-turbo",
                 base_url="https://api.openai.com/v1",
-                api_key="default-key-please-update-in-settings",
+                api_key=os.getenv("OPENAI_API_KEY", "your-openai-key-here"),
                 initial_capital=10000.0,  # $10,000 starting capital for crypto trading
                 current_cash=10000.0,
                 frozen_cash=0.0,
                 is_active="true"
             )
-            db.add(default_account)
+            db.add(gpt_account)
+
+            # Create DeepSeek account
+            deepseek_account = Account(
+                user_id=default_user.id,
+                version="v1",
+                name="DeepSeek",
+                account_type="AI",
+                model="deepseek-chat",
+                base_url="https://api.deepseek.com",
+                api_key=os.getenv("DEEPSEEK_API_KEY", "your-deepseek-key-here"),
+                initial_capital=10000.0,
+                current_cash=10000.0,
+                frozen_cash=0.0,
+                is_active="true"
+            )
+            db.add(deepseek_account)
+
+            # Create Qwen (通义千问) account
+            qwen_account = Account(
+                user_id=default_user.id,
+                version="v1",
+                name="Qwen",
+                account_type="AI",
+                model="qwen-plus",
+                base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+                api_key=os.getenv("QWEN_API_KEY", "your-qwen-key-here"),
+                initial_capital=10000.0,
+                current_cash=10000.0,
+                frozen_cash=0.0,
+                is_active="true"
+            )
+            db.add(qwen_account)
+            
             db.commit()
     finally:
         db.close()
@@ -173,3 +206,8 @@ async def serve_spa(full_path: str):
         return FileResponse(index_path)
     else:
         return {"message": "Frontend not built yet"}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Listen on all interfaces on port 80
+    uvicorn.run(app, host="0.0.0.0", port=80)

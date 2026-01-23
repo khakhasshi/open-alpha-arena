@@ -216,7 +216,7 @@ function useTradingViewChart(
     } else if (!window.__tradingViewScriptLoading) {
       window.__tradingViewScriptLoading = true
       widgetScript = document.createElement('script')
-      widgetScript.src = 'https://s3.tradingview.com/tv.js'
+      widgetScript.src = '/vendor/js/tv.js'
       widgetScript.async = true
       widgetScript.onload = () => {
         window.__tradingViewScriptLoading = false

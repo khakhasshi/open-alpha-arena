@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import logo from '@/logo.png'
 
 interface User {
   id: number
@@ -61,7 +62,10 @@ export default function Header({ title = 'Crypto Paper Trading', currentUser, cu
   return (
     <header className="w-full border-b bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="w-full py-2 px-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">{title}</h1>
+        <div className="flex items-center gap-3">
+          <img src={logo} alt="NAQL Logo" className="h-8 w-auto" />
+          <h1 className="text-xl font-bold">{title}</h1>
+        </div>
         
         <div className="flex items-center gap-4">
           <Button

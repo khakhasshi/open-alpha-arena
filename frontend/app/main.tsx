@@ -15,6 +15,7 @@ const resolveWsUrl = () => {
 
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
+import Footer from '@/components/layout/Footer'
 import Portfolio from '@/components/portfolio/Portfolio'
 import ComprehensiveView from '@/components/portfolio/ComprehensiveView'
 import { AIDecision, getAccounts } from '@/lib/api'
@@ -331,6 +332,7 @@ function App() {
           onUserChange={switchUser}
         />
         {renderMainContent()}
+        <Footer />
       </div>
     </div>
   )
